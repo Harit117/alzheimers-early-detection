@@ -1,0 +1,33 @@
+// Speakers, roles and scripts (slide numbers refer to the 16-slide deck).
+// Every number below is taken from report/benchmarks/results/*.json.
+const PEOPLE = [
+  { key: "MS", name: "Malhar Srivatsav", initials: "MS", role: "Problem and system overview", slides: [2, 3] },
+  { key: "SB", name: "Sathwik Hejamady Bhat", initials: "SB", role: "Data, imputation and balancing", slides: [4, 5] },
+  { key: "HR", name: "Harit Raval", initials: "HR", role: "The MRI model", slides: [6, 7] },
+  { key: "SJ", name: "Shreya Jain", initials: "SJ", role: "MRI results and benchmarks", slides: [8, 9] },
+  { key: "TP", name: "Taneesha Rajiv Prasad", initials: "TP", role: "Explainability and robustness", slides: [10, 11] },
+  { key: "NH", name: "Nithyashree Hebbar", initials: "NH", role: "The handwriting module", slides: [12, 13] },
+  { key: "AG", name: "Arshi Garg", initials: "AG", role: "Performance, limits and next steps", slides: [14, 15] },
+];
+
+// notes[n] = script for slide n (1-based). Slide 16 (closing) is shared.
+const NOTES = {
+  1: { who: "MS", text: "Good morning everyone. We're presenting an explainable prototype for early Alzheimer's detection from MRI and handwriting. All our data is synthetic." },
+  2: { who: "MS", text: "I'm Malhar. Alzheimer's moves through stages, and earlier detection gives patients more options. But early MRI changes are subtle, a bare label gives doctors nothing to check, and records are messy. Our answer: a VGG19 stage classifier, Grad-CAM explanations, a data-cleaning pipeline, and a second signal from handwriting." },
+  3: { who: "MS", text: "A FastAPI service sits behind the browser with two analyzers: the MRI predictor gives stage probabilities and a Grad-CAM map, and the handwriting analyzer scores a spiral drawing. Remember, all data is synthetic, so our numbers describe the pipeline, not patients. Sathwik will cover the data." },
+  4: { who: "SB", text: "Thanks, Malhar. I'm Sathwik. Real ADNI scans take weeks to access, so we built a generator. Its phantoms get larger ventricles, thinner cortex and a smaller hippocampus as stages advance, plus a clinical table with realistic gaps. The classes are imbalanced, about three to one, and later stages lose more values, so deleting incomplete rows discards the sickest patients first." },
+  5: { who: "SB", text: "We fix this in two steps. Hot-deck imputation copies real values from similar patients and, unlike mean imputation, keeps the data's variance near one. ADASYN then balances the classes exactly, but over thirty splits it changed macro F1 by just minus 0.002, so we call it implemented, not proven useful. Harit will explain the model." },
+  6: { who: "HR", text: "Thanks, Sathwik. I'm Harit. We did not train from scratch: VGG19 is pretrained on ImageNet, with early layers frozen. We fine-tune only the last convolutional block and replace the head with a new one ending in four stage outputs. That is 33 million parameters in total, 22.4 million of them trainable. We also use normal activations, so Grad-CAM can read them." },
+  7: { who: "HR", text: "Training uses AdamW, label smoothing and class weights, and we pick checkpoints by validation macro F1, not accuracy. An honest note: our checkpoint came from epoch one with a perfect validation score, so the validation set is saturated. We did not retrain; every result comes from the released checkpoint. Shreya will show the results." },
+  8: { who: "SJ", text: "Thanks, Harit. I'm Shreya. First, we reproduced the project's own reported numbers exactly: 95.35 percent accuracy and an identical confusion matrix on 43 slices. Then we tested three fresh cohorts, 1,065 unseen slices: 97.8 percent accuracy and macro F1 0.978, with a confidence interval from 0.968 to 0.986. The original figure was a small-sample estimate, not luck." },
+  9: { who: "SJ", text: "All 23 errors are between neighbouring stages; the model never confuses normal with Alzheimer's directly. Early-detection recall is 0.992, with five of 615 impaired slices called normal. The model is also underconfident: accuracy is 98.6 percent but average confidence only 91.8. Confidence still separates right from wrong: 0.92 versus 0.74. Taneesha will show what the model looks at." },
+  10: { who: "TP", text: "Thanks, Shreya. I'm Taneesha. For every scan, Grad-CAM shows which regions of the scan pushed the score up, and you can drag a slider between scan and map. You can even ask what would make a healthy scan Alzheimer's, and the map stays almost entirely cold. An attention audit flags maps with under forty percent of their weight centrally." },
+  11: { who: "TP", text: "Now the honest part. The audit never fired on 710 slices, so on clean data it is only a sanity check. And degraded images hurt: noise of 0.10 drops macro F1 from 0.987 to 0.648, and brightness shifts cut early-detection recall to about 0.89. Clean synthetic scores say little about real scans. Nithyashree will present handwriting." },
+  12: { who: "NH", text: "Thanks, Taneesha. I'm Nithyashree. Studies link cognitive decline to slower, more hesitant, wobblier handwriting. So you draw a spiral in the browser, and we record every pen point with its timestamp. From that trace we compute nine measurements, such as speed, stalls, tremor and spiral irregularity, all relative to canvas size. A mouse or finger gives no pressure data." },
+  13: { who: "NH", text: "A logistic regression scores the drawing, so each prediction splits exactly into per-feature contributions. On 600 held-out simulated drawings it reaches an AUC of 0.962. The big caveat: it was trained on simulated drawings, so it learned our assumptions. Heavy coordinate noise drops accuracy to 65 percent, though AUC stays 0.93. Arshi will finish with performance." },
+  14: { who: "AG", text: "Thanks, Nithyashree. I'm Arshi. On four CPU cores with no GPU, the handwriting score takes about 10 milliseconds, an MRI prediction 111, and adding the Grad-CAM explanation 293. One bottleneck: a worker handles about nine predictions or 3.6 explanations a second, because requests run one at a time. More users need more workers or a GPU." },
+  15: { who: "AG", text: "What can we claim? The pipeline works end to end, reproduces exactly, and explains its answers. What we cannot claim is clinical performance: the data are synthetic, image noise breaks the model, and the combined score is just an average. Next come real data such as ADNI and DARWIN, calibration, robustness training and a learned fusion. Thank you all." },
+  16: { who: "MS", text: "Thank you. We are happy to take questions, and we can run the live demo." },
+};
+
+module.exports = { PEOPLE, NOTES };
